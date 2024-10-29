@@ -2,10 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Difficalcy.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Difficalcy.Services
 {
-    public abstract class CalculatorService<TScore, TDifficulty, TPerformance, TCalculation>(ICache cache)
+    public abstract class CalculatorService<TScore, TDifficulty, TPerformance, TCalculation>(ICache cache, ILogger logger)
         where TScore : Score
         where TDifficulty : Difficulty
         where TPerformance : Performance
@@ -47,6 +48,7 @@ namespace Difficalcy.Services
         /// </summary>
         public async Task<TCalculation> GetCalculation(TScore score)
         {
+            logger.LogTrace($"calculating score for {score}, bid {score.BeatmapId}, mods {score.Mods}");
             var difficultyAttributes = await GetDifficultyAttributes(score.BeatmapId, score.Mods);
             return CalculatePerformance(score, difficultyAttributes);
         }
@@ -67,12 +69,14 @@ namespace Difficalcy.Services
 
         private async Task<IEnumerable<TCalculation>> GetUniqueBeatmapCalculationBatch(string beatmapId, int mods, IEnumerable<TScore> scores)
         {
+            logger.LogTrace($"calculating batch scores, bid {beatmapId}, mods {mods}");
             var difficultyAttributes = await GetDifficultyAttributes(beatmapId, mods);
             return scores.AsParallel().AsOrdered().Select(score => CalculatePerformance(score, difficultyAttributes));
         }
 
         private async Task<object> GetDifficultyAttributes(string beatmapId, int mods)
         {
+            logger.LogTrace($"calculating beatmap difficulty, bid {beatmapId}, mods {mods}");
             await EnsureBeatmap(beatmapId);
 
             var db = cache.GetDatabase();
