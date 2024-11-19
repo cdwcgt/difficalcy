@@ -8,12 +8,23 @@ namespace Difficalcy.Controllers
     [ApiController]
     [Route("/api")]
     [Produces("application/json")]
-    public abstract class CalculatorController<TScore, TDifficulty, TPerformance, TCalculation, TCalculatorService>(TCalculatorService calculatorService) : ControllerBase
+    public abstract class CalculatorController<
+        TScore,
+        TDifficulty,
+        TPerformance,
+        TCalculation,
+        TCalculatorService
+    >(TCalculatorService calculatorService) : ControllerBase
         where TScore : Score
         where TDifficulty : Difficulty
         where TPerformance : Performance
         where TCalculation : Calculation<TDifficulty, TPerformance>
-        where TCalculatorService : CalculatorService<TScore, TDifficulty, TPerformance, TCalculation>
+        where TCalculatorService : CalculatorService<
+                TScore,
+                TDifficulty,
+                TPerformance,
+                TCalculation
+            >
     {
         protected readonly TCalculatorService calculatorService = calculatorService;
 
