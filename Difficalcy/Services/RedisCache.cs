@@ -19,6 +19,18 @@ namespace Difficalcy.Services
         {
             redisDatabase.StringSet(key, value, flags: CommandFlags.FireAndForget);
         }
+
+        public void RemovePrefix(string key)
+        {
+            string script = @"
+            local keys = redis.call('KEYS', ARGV[1])
+            for i = 1, #keys, 1 do
+                redis.call('DEL', keys[i])
+            end
+            return #keys";
+            
+            redisDatabase.ScriptEvaluate(script, values: [key]);
+        }
     }
 
     public class RedisCache(IConnectionMultiplexer redis) : ICache

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Difficalcy.Services
@@ -11,6 +12,16 @@ namespace Difficalcy.Services
             Task.FromResult(dictionary.GetValueOrDefault(key, null));
 
         public void Set(string key, string value) => dictionary[key] = value;
+        
+        public void RemovePrefix(string prefix)
+        {
+            var keys = dictionary.Where(kvp => kvp.Value.StartsWith(prefix)).Select(kvp => kvp.Key);
+            
+            foreach (var key in keys)
+            {
+                dictionary.Remove(key);
+            }
+        }
     }
 
     public class InMemoryCache : ICache

@@ -7,6 +7,8 @@ namespace Difficalcy.Services
         Task<string> GetAsync(string key);
 
         void Set(string key, string value);
+        
+        void RemovePrefix(string key);
     }
 
     public interface ICache
