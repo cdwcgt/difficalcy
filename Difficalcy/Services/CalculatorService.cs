@@ -31,7 +31,7 @@ namespace Difficalcy.Services
         /// <summary>
         /// Runs the difficulty calculator and returns the difficulty attributes as both an object and JSON serialised string.
         /// </summary>
-        protected abstract (object, string) CalculateDifficultyAttributes(string beatmapId, int mods);
+        protected abstract (object, string)CalculateDifficultyAttributes(string beatmapId, int mods);
 
         /// <summary>
         /// Returns the deserialised object for a given JSON serialised difficulty attributes object.
@@ -46,14 +46,14 @@ namespace Difficalcy.Services
         /// <summary>
         /// Returns the calculation of a given score.
         /// </summary>
-        public async Task<TCalculation> GetCalculation(TScore score)
+        public async Task<TCalculation> GetCalculation(TScore score, bool ignoreCache = false)
         {
             logger.LogTrace($"calculating score for {score}, bid {score.BeatmapId}, mods {score.Mods}");
-            var difficultyAttributes = await GetDifficultyAttributes(score.BeatmapId, score.Mods);
+            var difficultyAttributes = await GetDifficultyAttributes(score.BeatmapId, score.Mods, ignoreCache);
             return CalculatePerformance(score, difficultyAttributes);
         }
 
-        public async Task<IEnumerable<TCalculation>> GetCalculationBatch(TScore[] scores)
+        public async Task<IEnumerable<TCalculation>> GetCalculationBatch(TScore[] scores, bool ignoreCache = false)
         {
             var scoresWithIndex = scores.Select((score, index) => (score, index));
             var uniqueBeatmapGroups = scoresWithIndex.GroupBy(scoreWithIndex => (scoreWithIndex.score.BeatmapId, scoreWithIndex.score.Mods));
@@ -61,27 +61,32 @@ namespace Difficalcy.Services
             var calculationGroups = await Task.WhenAll(uniqueBeatmapGroups.Select(async group =>
             {
                 var scores = group.Select(scoreWithIndex => scoreWithIndex.score);
-                return group.Select(scoreWithIndex => scoreWithIndex.index).Zip(await GetUniqueBeatmapCalculationBatch(group.Key.BeatmapId, group.Key.Mods, scores));
+                return group.Select(scoreWithIndex => scoreWithIndex.index).Zip(await GetUniqueBeatmapCalculationBatch(group.Key.BeatmapId, group.Key.Mods, scores, ignoreCache));
             }));
 
             return calculationGroups.SelectMany(group => group).OrderBy(group => group.First).Select(group => group.Second);
         }
 
-        private async Task<IEnumerable<TCalculation>> GetUniqueBeatmapCalculationBatch(string beatmapId, int mods, IEnumerable<TScore> scores)
+        private async Task<IEnumerable<TCalculation>> GetUniqueBeatmapCalculationBatch(string beatmapId, int mods, IEnumerable<TScore> scores, bool ignoreCache = false)
         {
             logger.LogTrace($"calculating batch scores, bid {beatmapId}, mods {mods}");
-            var difficultyAttributes = await GetDifficultyAttributes(beatmapId, mods);
+            var difficultyAttributes = await GetDifficultyAttributes(beatmapId, mods, ignoreCache);
             return scores.AsParallel().AsOrdered().Select(score => CalculatePerformance(score, difficultyAttributes));
         }
 
-        private async Task<object> GetDifficultyAttributes(string beatmapId, int mods)
+        private async Task<object> GetDifficultyAttributes(string beatmapId, int mods, bool ignoreCache = false)
         {
             logger.LogTrace($"calculating beatmap difficulty, bid {beatmapId}, mods {mods}");
             await EnsureBeatmap(beatmapId);
 
+            string difficultyAttributesJson = null;
             var db = cache.GetDatabase();
             var redisKey = $"difficalcy:{CalculatorDiscriminator}:{beatmapId}:{mods}";
-            var difficultyAttributesJson = await db.GetAsync(redisKey);
+            
+            if (!ignoreCache)
+            {
+                difficultyAttributesJson = await db.GetAsync(redisKey);                
+            }
 
             object difficultyAttributes;
             if (difficultyAttributesJson == null)

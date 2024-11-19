@@ -30,11 +30,11 @@ namespace Difficalcy.Controllers
         /// Returns difficulty and performance values for a score.
         /// </summary>
         [HttpGet("calculation")]
-        public async Task<ActionResult<TCalculation>> GetCalculation([FromQuery] TScore score)
+        public async Task<ActionResult<TCalculation>> GetCalculation([FromQuery] TScore score, [FromQuery] bool ignoreCache = false)
         {
             try
             {
-                return Ok(await calculatorService.GetCalculation(score));
+                return Ok(await calculatorService.GetCalculation(score, ignoreCache));
             }
             catch (BeatmapNotFoundException e)
             {
@@ -47,11 +47,11 @@ namespace Difficalcy.Controllers
         /// </summary>
         [HttpPost("batch/calculation")]
         [Consumes("application/json")]
-        public async Task<ActionResult<TCalculation[]>> GetCalculationBatch([FromBody] TScore[] scores)
+        public async Task<ActionResult<TCalculation[]>> GetCalculationBatch([FromBody] TScore[] scores, [FromQuery] bool ignoreCache = false)
         {
             try
             {
-                return Ok(await calculatorService.GetCalculationBatch(scores));
+                return Ok(await calculatorService.GetCalculationBatch(scores, ignoreCache));
             }
             catch (BeatmapNotFoundException e)
             {
