@@ -56,6 +56,12 @@ namespace Difficalcy.Services
         public async Task<TCalculation> GetCalculation(TScore score, bool ignoreCache = false)
         {
             logger?.LogTrace($"calculating score for {score}, bid {score.BeatmapId}, mods {score.Mods}");
+
+            if (ignoreCache)
+            {
+                removeBeatmapCache([score.BeatmapId]);
+            }
+            
             var difficultyAttributes = await GetDifficultyAttributes(score.BeatmapId, score.Mods, ignoreCache);
             return CalculatePerformance(score, difficultyAttributes);
         }
@@ -67,6 +73,11 @@ namespace Difficalcy.Services
                 (scoreWithIndex.score.BeatmapId, GetModString(scoreWithIndex.score.Mods))
             );
             
+            if (ignoreCache)
+            {
+                removeBeatmapCache(scores.Select(s => s.BeatmapId).Distinct().ToArray());
+            }
+            
             var calculationGroups = await Task.WhenAll(
                 uniqueBeatmapGroups.Select(async group =>
                 {
@@ -77,7 +88,8 @@ namespace Difficalcy.Services
                             await GetUniqueBeatmapCalculationBatch(
                                 group.Key.BeatmapId,
                                 scores.First().Mods,
-                                scores
+                                scores,
+                                ignoreCache
                             )
                         );
                 })
@@ -108,7 +120,7 @@ namespace Difficalcy.Services
             logger?.LogTrace($"calculating beatmap difficulty, bid {beatmapId}, mods {mods}");
             await EnsureBeatmap(beatmapId);
 
-            string difficultyAttributesJson = null;
+            string? difficultyAttributesJson = null;
             var db = cache.GetDatabase();
             var redisKey = GetRedisKey(beatmapId, mods);
             
@@ -139,5 +151,18 @@ namespace Difficalcy.Services
 
         private static string GetModString(Mod[] mods) =>
             string.Join(",", mods.OrderBy(mod => mod.Acronym).Select(mod => mod.ToString()));
+
+        private void removeBeatmapCache(string[] beatmapIds)
+        {
+            var db = cache.GetDatabase();
+
+            foreach (var beatmap in beatmapIds)
+            {
+                db.RemovePrefix(GetRedisPrefixForDeleteBeatmap(GetRedisPrefixForDeleteBeatmap(beatmap)));
+            }
+        }
+        
+        private string GetRedisPrefixForDeleteBeatmap(string beatmapId) =>
+            $"difficalcy:{CalculatorDiscriminator}:{beatmapId}";
     }
 }
