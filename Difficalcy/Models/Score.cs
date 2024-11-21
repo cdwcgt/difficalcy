@@ -17,7 +17,7 @@ namespace Difficalcy.Models
         [Required]
         public string Acronym { get; init; }
 
-        public Dictionary<string, string> Settings { get; init; } = [];
+        public Dictionary<string, object> Settings { get; init; } = [];
 
         public override string ToString()
         {
