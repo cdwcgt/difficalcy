@@ -40,8 +40,8 @@ namespace Difficalcy.Controllers
         /// <summary>
         /// Returns difficulty and performance values for a score.
         /// </summary>
-        [HttpGet("calculation")]
-        public async Task<ActionResult<TCalculation>> GetCalculation([FromQuery] TScore score, [FromQuery] bool ignoreCache = false)
+        [HttpPost("calculation")]
+        public async Task<ActionResult<TCalculation>> GetCalculation([FromBody] TScore score, [FromQuery] bool ignoreCache = false)
         {
             try
             {
